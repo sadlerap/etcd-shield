@@ -25,7 +25,7 @@ import (
 )
 
 type PromQuery interface {
-	Query(context.Context, string) (string, error)
+	IsAlertFiring(context.Context, string) (bool, error)
 }
 
 type Prometheus struct {
@@ -47,18 +47,20 @@ func NewPrometheus(address string, cfg config.HTTPClientConfig) (PromQuery, erro
 	return &Prometheus{prometheus: api}, nil
 }
 
-func (p *Prometheus) Query(ctx context.Context, query string) (string, error) {
+func (p *Prometheus) IsAlertFiring(ctx context.Context, alertName string) (bool, error) {
 	log := logr.FromContextOrDiscard(ctx)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	result, warnings, err := p.prometheus.Query(ctx, query, time.Now(), v1.WithTimeout(5*time.Second))
+	alerts, err := p.prometheus.Alerts(ctx)
 	if err != nil {
-		log.Error(err, "Error querying prometheus", "query", query)
-		return "", err
+		log.Error(err, "Error querying prometheus for active alerts")
+		return false, err
 	}
-	if len(warnings) > 0 {
-		log.V(4).Info("Warning from prometheus", "warning", warnings)
+	for _, alert := range alerts.Alerts {
+		if alert.Value == alertName {
+			return true, nil
+		}
 	}
 
-	return result.String(), nil
+	return false, nil
 }

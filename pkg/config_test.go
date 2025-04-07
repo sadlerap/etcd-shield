@@ -29,15 +29,23 @@ import (
 )
 
 var _ = Describe("Pkg/Config", func() {
-	yamlConfig := `
-    destName: etcd-shield-state
-    destNamespace: etcd-shield
-    disableIngressQuery: foo
-    enableIngressQuery: bar
-    prometheus:
-      address: prometheus.prometheus.svc:8080
-    waitTime: 15s
-    `
+	var yamlConfig string
+
+	BeforeEach(func() {
+		cfg := etcd_shield.Config{
+			DestName:      "etcd-shield-state",
+			DestNamespace: "etcd-shield",
+			Prometheus: etcd_shield.PrometheusConfig{
+				AlertName: "foo",
+				Address:   "prometheus.prometheus.svc:8080",
+			},
+			WaitTime: etcd_shield.NewDuration(15 * time.Second),
+		}
+		config, err := yaml.Marshal(&cfg)
+		Expect(err).NotTo(HaveOccurred())
+
+		yamlConfig = string(config)
+	})
 
 	It("Should deserialize a yaml config", func() {
 		var config etcd_shield.Config
@@ -46,8 +54,7 @@ var _ = Describe("Pkg/Config", func() {
 
 		Expect(config.DestName).To(Equal("etcd-shield-state"))
 		Expect(config.DestNamespace).To(Equal("etcd-shield"))
-		Expect(config.DisableIngressQuery).To(Equal("foo"))
-		Expect(config.EnableIngressQuery).To(Equal("bar"))
+		Expect(config.Prometheus.AlertName).To(Equal("foo"))
 		Expect(config.Prometheus.Address).To(Equal("prometheus.prometheus.svc:8080"))
 		Expect(config.WaitTime).To(Equal(etcd_shield.NewDuration(15 * time.Second)))
 	})
@@ -68,8 +75,7 @@ var _ = Describe("Pkg/Config", func() {
 
 		Expect(config.DestName).To(Equal("etcd-shield-state"))
 		Expect(config.DestNamespace).To(Equal("etcd-shield"))
-		Expect(config.DisableIngressQuery).To(Equal("foo"))
-		Expect(config.EnableIngressQuery).To(Equal("bar"))
+		Expect(config.Prometheus.AlertName).To(Equal("foo"))
 		Expect(config.Prometheus.Address).To(Equal("prometheus.prometheus.svc:8080"))
 		Expect(config.WaitTime).To(Equal(etcd_shield.NewDuration(15 * time.Second)))
 	})

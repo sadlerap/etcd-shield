@@ -32,15 +32,7 @@ type Config struct {
 	// DestNamespace is the namespace of the ConfigMap to write our state to
 	DestNamespace string `json:"destNamespace"`
 
-	// DisableIngressQuery is the prometheus query to run to determine if PipelineRun
-	// ingress is no longer allowed.  Should be mutually exclusive with
-	// ResetQuery.
-	DisableIngressQuery string `json:"disableIngressQuery"`
-
-	// EnableIngressQuery is the prometheus query to run to determine if `PipelineRun`
-	// ingress will be allowed.  Should be mutually exclusive with SetQuery.
-	EnableIngressQuery string `json:"enableIngressQuery"`
-
+	// Prometheus specifies how to talk to a service that speaks the prometheus HTTP API.
 	Prometheus PrometheusConfig `json:"prometheus"`
 
 	// WaitTime is how long we'll wait before checking prometheus again.
@@ -50,6 +42,10 @@ type Config struct {
 type PrometheusConfig struct {
 	// Address to make prometheus queries to
 	Address string `json:"address"`
+
+	// EnableIngressQuery is the prometheus query to run to determine if `PipelineRun`
+	// ingress will be allowed.  Should be mutually exclusive with SetQuery.
+	AlertName string `json:"alertName"`
 
 	// Config details the connection information to the prometheus server
 	Config config.HTTPClientConfig `json:"config"`

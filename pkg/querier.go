@@ -63,32 +63,17 @@ func (q *Querier) Start(ctx context.Context) error {
 }
 
 func (q *Querier) Process(ctx context.Context) error {
-	var query string
 	l := logr.FromContextOrDiscard(ctx)
 
-	// step 1: read state and determine which query to run
-	currentState, err := q.state.ReadConfig(ctx)
+	// step 1: check if the alert we're interested in is firing
+	result, err := q.prometheus.IsAlertFiring(ctx, q.config.Prometheus.AlertName)
 	if err != nil {
 		return err
 	}
+	l.Info("pipelinerun ingress status", "status", result)
 
-	// step 2: check if we need to continue allowing or denying requests
-	if currentState == true {
-		query = q.config.DisableIngressQuery
-		l.Info("checking to disable pipelinerun ingress")
-	} else {
-		query = q.config.EnableIngressQuery
-		l.Info("checking to enable pipelinerun ingress")
-	}
-	result, err := q.prometheus.Query(ctx, query)
-	if err != nil {
-		return err
-	}
-	newState := result != "0"
-	l.Info("pipelinerun ingress status", "status", newState)
-
-	// step 3: update the webhooks
-	err = q.state.WriteConfig(ctx, newState)
+	// step 2: update the webhooks
+	err = q.state.WriteConfig(ctx, result)
 	if err != nil {
 		return err
 	}
