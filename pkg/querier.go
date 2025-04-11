@@ -70,7 +70,7 @@ func (q *Querier) Process(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	l.Info("pipelinerun ingress status", "status", result)
+	l.Info("pipelinerun ingress status", "is-firing", result)
 
 	// step 2: update the webhooks
 	err = q.state.WriteConfig(ctx, result)

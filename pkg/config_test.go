@@ -62,7 +62,7 @@ var _ = Describe("Pkg/Config", func() {
 	It("Should deserialize from a configmap", func() {
 		configMap := v1.ConfigMap{
 			Data: map[string]string{
-				"config": yamlConfig,
+				"config.yaml": yamlConfig,
 			},
 		}
 		configMap.SetName("config")

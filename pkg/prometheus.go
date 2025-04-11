@@ -57,7 +57,7 @@ func (p *Prometheus) IsAlertFiring(ctx context.Context, alertName string) (bool,
 		return false, err
 	}
 	for _, alert := range alerts.Alerts {
-		if alert.Value == alertName {
+		if alert.Value == alertName && alert.Labels["severity"] == "critical" {
 			return true, nil
 		}
 	}

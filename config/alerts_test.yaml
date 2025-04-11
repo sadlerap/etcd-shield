@@ -1,0 +1,104 @@
+evaluation_interval: 1m
+
+rule_files:
+- ./etcd_shield_alert_tests.yaml
+
+tests:
+# trigger an alert over 95 percent capacity
+- interval: 1m
+  input_series:
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.121:9979"}'
+    values: '4294967296x5 8589934592x5'
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.41:9979"}'
+    values: '4294967296x5 8589934592x5'
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.63:9979"}'
+    values: '4294967296x5 8589934592x5'
+  promql_expr_test:
+  - expr: etcd_shield_trigger
+    eval_time: 10m
+    exp_samples:
+    - labels: etcd_shield_trigger
+      value: 1
+  alert_rule_test:
+  - eval_time: 10m
+    alertname: EtcdShieldDenyAdmission
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+      exp_annotations:
+        summary: etcd-shield is denying admission
+        description: Etcd is nearing capacity limits, so etcd-shield is denying admission
+
+# fire the alert even if only one etcd fills up
+- interval: 1m
+  input_series:
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.121:9979"}'
+    values: '4294967296x5 8589934592x5'
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.41:9979"}'
+    values: '4294967296x5 8000000000x5'
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.63:9979"}'
+    values: '4294967296x5 8000000000x5'
+  promql_expr_test:
+  - expr: etcd_shield_trigger
+    eval_time: 10m
+    exp_samples:
+    - labels: etcd_shield_trigger
+      value: 1
+  alert_rule_test:
+  - eval_time: 10m
+    alertname: EtcdShieldDenyAdmission
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+      exp_annotations:
+        summary: etcd-shield is denying admission
+        description: Etcd is nearing capacity limits, so etcd-shield is denying admission
+
+# hold the trigger as long as its above 80 percent
+- interval: 1m
+  input_series:
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.121:9979"}'
+    values: '4294967296x5 8589934592x5 8000000000x10'
+  alert_rule_test:
+  - eval_time: 10m
+    alertname: EtcdShieldDenyAdmission
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+      exp_annotations:
+        summary: etcd-shield is denying admission
+        description: Etcd is nearing capacity limits, so etcd-shield is denying admission
+  - eval_time: 20m
+    alertname: EtcdShieldDenyAdmission
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+      exp_annotations:
+        summary: etcd-shield is denying admission
+        description: Etcd is nearing capacity limits, so etcd-shield is denying admission
+
+# # release after it drops beneath 80 percent
+- interval: 1m
+  input_series:
+  - series: 'etcd_mvcc_db_total_size_in_bytes{instance="10.74.213.121:9979"}'
+    values: '0x5 8589934592x10 8000000000x5 0x15'
+  alert_rule_test:
+  - eval_time: 10m
+    alertname: EtcdShieldDenyAdmission
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+      exp_annotations:
+        summary: etcd-shield is denying admission
+        description: Etcd is nearing capacity limits, so etcd-shield is denying admission
+  - eval_time: 20m
+    alertname: EtcdShieldDenyAdmission
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+      exp_annotations:
+        summary: etcd-shield is denying admission
+        description: Etcd is nearing capacity limits, so etcd-shield is denying admission
+  - eval_time: 35m
+    alertname: EtcdShieldDenyAdmission
+    exp_alerts: []

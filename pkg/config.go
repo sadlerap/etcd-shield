@@ -15,13 +15,10 @@
 package etcd_shield
 
 import (
-	"context"
+	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/config"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -51,23 +48,17 @@ type PrometheusConfig struct {
 	Config config.HTTPClientConfig `json:"config"`
 }
 
-func GetConfig(ctx context.Context, client client.Client, ref types.NamespacedName) (*Config, error) {
-	l := logr.FromContextOrDiscard(ctx)
-	l = l.WithValues("name", ref.Name, "namespace", ref.Namespace)
-	config := v1.ConfigMap{}
-
-	l.Info("Retrieving config")
-
-	err := client.Get(ctx, ref, &config)
+func GetConfig(l logr.Logger, path string) (*Config, error) {
+	contents, err := os.ReadFile(path)
 	if err != nil {
-		l.Error(err, "Failed to retrieve config")
+		l.Error(err, "failed to read config", "path", path)
 		return nil, err
 	}
 
 	cfg := Config{}
-	err = yaml.Unmarshal([]byte(config.Data["config"]), &cfg)
+	err = yaml.Unmarshal(contents, &cfg)
 	if err != nil {
-		l.Error(err, "Failed to deserialize config")
+		l.Error(err, "failed to deserialize config", "path", path)
 		return nil, err
 	}
 
