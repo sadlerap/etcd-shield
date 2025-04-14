@@ -66,14 +66,14 @@ func (q *Querier) Process(ctx context.Context) error {
 	l := logr.FromContextOrDiscard(ctx)
 
 	// step 1: check if the alert we're interested in is firing
-	result, err := q.prometheus.IsAlertFiring(ctx, q.config.Prometheus.AlertName)
+	firing, err := q.prometheus.IsAlertFiring(ctx, q.config.Prometheus.AlertName)
 	if err != nil {
 		return err
 	}
-	l.Info("pipelinerun ingress status", "is-firing", result)
+	l.Info("pipelinerun ingress status", "is-firing", firing)
 
 	// step 2: update the webhooks
-	err = q.state.WriteConfig(ctx, result)
+	err = q.state.WriteConfig(ctx, !firing)
 	if err != nil {
 		return err
 	}

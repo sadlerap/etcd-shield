@@ -22,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/config"
+	"github.com/prometheus/common/model"
 )
 
 type PromQuery interface {
@@ -47,6 +48,7 @@ func NewPrometheus(address string, cfg config.HTTPClientConfig) (PromQuery, erro
 	return &Prometheus{prometheus: api}, nil
 }
 
+// IsAlertFiring indicates whether the alert with the name is firing.
 func (p *Prometheus) IsAlertFiring(ctx context.Context, alertName string) (bool, error) {
 	log := logr.FromContextOrDiscard(ctx)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -57,7 +59,8 @@ func (p *Prometheus) IsAlertFiring(ctx context.Context, alertName string) (bool,
 		return false, err
 	}
 	for _, alert := range alerts.Alerts {
-		if alert.Value == alertName && alert.Labels["severity"] == "critical" {
+		if alert.Labels["alertname"] == model.LabelValue(alertName) &&
+			alert.State == v1.AlertStateFiring {
 			return true, nil
 		}
 	}

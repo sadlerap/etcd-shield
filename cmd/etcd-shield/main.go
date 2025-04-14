@@ -33,17 +33,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
-
-func configRef() types.NamespacedName {
-	name := os.Getenv("CONFIG_NAME")
-	namespace := os.Getenv("CONFIG_NAMESPACE")
-	return types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}
-}
 
 func namespace() string {
 	return os.Getenv("NAMESPACE")
@@ -69,6 +62,15 @@ func SetupStateWithManager(manager manager.Manager, configPath string) error {
 	querier := shield.NewQuerier(prom, state, *cfg)
 
 	manager.Add(querier)
+
+	err = ctrl.NewWebhookManagedBy(manager).
+		For(&tektonv1.PipelineRun{}).
+		WithValidator(shield.NewWebhook(state)).
+		Complete()
+	if err != nil {
+		ctrl.Log.Error(err, "unable to setup pipelinerun webhooks")
+		os.Exit(1)
+	}
 
 	return nil
 }
@@ -131,6 +133,11 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "etcd-shield.konflux-ci.dev",
 		HealthProbeBindAddress: probeAddr,
+		Metrics: server.Options{
+			FilterProvider: filters.WithAuthenticationAndAuthorization,
+			SecureServing:  true,
+			TLSOpts:        tlsOpts,
+		},
 		WebhookServer: webhook.NewServer(webhook.Options{
 			Port:    webhookPort,
 			TLSOpts: tlsOpts,
@@ -140,15 +147,6 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		ctrl.Log.Error(err, "failed to create manager")
-		os.Exit(1)
-	}
-
-	err = ctrl.NewWebhookManagedBy(mgr).
-		For(&tektonv1.PipelineRun{}).
-		WithValidator(&shield.Webhook{}).
-		Complete()
-	if err != nil {
-		ctrl.Log.Error(err, "unable to setup pipelinerun webhooks")
 		os.Exit(1)
 	}
 

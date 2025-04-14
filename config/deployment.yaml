@@ -20,6 +20,7 @@ spec:
         - -leader-elect
         - -health-probe-bind-address=:8081
         - -config=/etc/etcd-shield/config.yaml
+        - -port=8443
         env:
         - name: "NAMESPACE"
           valueFrom:
@@ -27,7 +28,7 @@ spec:
               fieldPath: metadata.namespace
         image: etcd-shield:latest
         name: etcd-shield
-        imagePullPolicy: Always
+        imagePullPolicy: Always  # IfNotPresent
         livenessProbe:
           initialDelaySeconds: 1
           httpGet:

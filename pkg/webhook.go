@@ -23,7 +23,13 @@ import (
 )
 
 type Webhook struct {
-	state State
+	state StateManager
+}
+
+func NewWebhook(state StateManager) admission.CustomValidator {
+	return &Webhook{
+		state: state,
+	}
 }
 
 var _ admission.CustomValidator = &Webhook{}
